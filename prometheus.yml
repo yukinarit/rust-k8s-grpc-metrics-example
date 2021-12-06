@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: prometheus
+    protocol: TCP
+    port: 9090
+    targetPort: 9090
+  selector:
+    app: prometheus
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  labels:
+    name: prometheus-config
+data:
+  prometheus.yml: |-
+    global:
+      scrape_interval:     10s
+      evaluation_interval: 10s
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+        - targets: ['localhost:9090']
+      - job_name: kubernetes-service
+        scheme: http
+        kubernetes_sd_configs:
+        - role: endpoints
+        relabel_configs:
+        - source_labels:
+          - __meta_kubernetes_namespace
+          - __meta_kubernetes_service_name
+          regex: default;kubernetes
+          action: drop
+        - source_labels:
+          - __meta_kubernetes_namespace
+          - __meta_kubernetes_service_name
+          - __meta_kubernetes_endpoint_port_name
+          regex: default;server-metrics-service;metrics
+          action: keep
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      volumes:
+        - name: prom-config
+          configMap:
+            name: prometheus-config
+      containers:
+      - name: prometheus
+        image: "prom/prometheus"
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - name: prom-config
+            mountPath: /etc/prometheus
+        ports:
+        - containerPort: 9090

@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-service
+spec:
+  selector:
+    app: server
+  ports:
+    - protocol: TCP
+      port: 20000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-metrics-service
+spec:
+  selector:
+    app: server
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 9000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-deployment
+  labels:
+    app: server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+      - name: server
+        image: "yukinarit/rust-metrics-server@sha256:fca8e568f9c1f2bd35d1214c282eb04e07f1b75df07530b4c88ea09c63d41910"
+        ports:
+        - containerPort: 20000

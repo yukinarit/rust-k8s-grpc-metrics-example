@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: client-job
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: client
+            image: "yukinarit/rust-metrics-client@sha256:3da334eef933f976809533b52b9961c0b48615aeb16f8797ea4ed5d7bb01e2ee"
+            command: ["/app/client"]
+            env:
+            - name: CLIENT_HOST
+              value: "server-service.default"
+            - name: CLIENT_PORT
+              value: "20000"
+          restartPolicy: Never
